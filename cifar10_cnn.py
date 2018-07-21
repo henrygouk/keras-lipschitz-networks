@@ -4,47 +4,20 @@ from keras.datasets import cifar10
 from keras.preprocessing.image import ImageDataGenerator
 from keras.models import Sequential
 from keras.callbacks import LearningRateScheduler
-from keras.layers import Dense, BatchNormalization, Activation, Flatten
-from keras.layers import Conv2D, MaxPooling2D
+from keras.layers import Dense, BatchNormalization, Activation, Flatten, Conv2D, MaxPooling2D, InputSpec
 from keras.constraints import Constraint
 from keras import backend as K
+from lipschitz import L1Lipschitz, BNLipschitz
 import os
-
-class L1Lipschitz(Constraint):
-
-    def __init__(self, max_k):
-        self.max_k = max_k
-
-    def __call__(self, w):
-        axes=1
-
-        if len(w.shape) == 4:
-            axes=[0, 1, 3]
-        
-        norm = K.max(K.sum(K.abs(w), axis=axes, keepdims=False))
-        return w * (1.0 / K.maximum(1.0, norm / self.max_k))
-    
-    def get_config(self):
-        return {"max_k": self.max_k}
-
-class BNLipschitz(Constraint):
-
-    def __init__(self, max_k):
-        self.max_k = max_k
-    
-    def __call__(self, w):
-        norm = K.max(K.sum(K.abs(w)))
-        return w * (1.0 / K.maximum(1.0, norm / self.max_k))
-    
-    def get_config(self):
-        return {"max_k": self.max_k}
 
 
 batch_size = 100
 num_classes = 10
 epochs = 140
 data_augmentation = True
-lcc_l1 = False
+lcc = True
+lcc_norm = 1
+lcc_lambda = 20
 save_dir = os.path.join(os.getcwd(), 'saved_models')
 model_name = 'cifar10.h5'
 
@@ -61,40 +34,42 @@ y_test = keras.utils.to_categorical(y_test, num_classes)
 const = None
 bnconst = None
 
-if lcc_l1:
-    const = L1Lipschitz(20.0)
-    bnconst = BNLipschitz(20.0)
+if lcc:
+    assert lcc_norm == 1
+    const = L1Lipschitz(lcc_lambda)
+else:
+    lcc_lambda = float("inf")
 
 model = Sequential()
 model.add(Conv2D(64, (3, 3), padding='same', input_shape=x_train.shape[1:], kernel_constraint=const))
-model.add(BatchNormalization(gamma_constraint=bnconst))
+model.add(BNLipschitz(max_k=lcc_lambda))
 model.add(Activation('relu'))
 model.add(Conv2D(64, (3, 3), padding='same', kernel_constraint=const))
-model.add(BatchNormalization(gamma_constraint=bnconst))
+model.add(BNLipschitz(max_k=lcc_lambda))
 model.add(Activation('relu'))
 model.add(MaxPooling2D(pool_size=(2, 2)))
 
 model.add(Conv2D(128, (3, 3), padding='same', kernel_constraint=const))
-model.add(BatchNormalization(gamma_constraint=bnconst))
+model.add(BNLipschitz(max_k=lcc_lambda))
 model.add(Activation('relu'))
 model.add(Conv2D(128, (3, 3), padding='same', kernel_constraint=const))
-model.add(BatchNormalization(gamma_constraint=bnconst))
+model.add(BNLipschitz(max_k=lcc_lambda))
 model.add(Activation('relu'))
 model.add(MaxPooling2D(pool_size=(2, 2)))
 
 model.add(Conv2D(256, (3, 3), padding='same', kernel_constraint=const))
-model.add(BatchNormalization(gamma_constraint=bnconst))
+model.add(BNLipschitz(max_k=lcc_lambda))
 model.add(Activation('relu'))
 model.add(Conv2D(256, (3, 3), padding='same', kernel_constraint=const))
-model.add(BatchNormalization(gamma_constraint=bnconst))
+model.add(BNLipschitz(max_k=lcc_lambda))
 model.add(Activation('relu'))
 model.add(MaxPooling2D(pool_size=(2, 2)))
 
 model.add(Conv2D(512, (3, 3), padding='same', kernel_constraint=const))
-model.add(BatchNormalization(gamma_constraint=bnconst))
+model.add(BNLipschitz(max_k=lcc_lambda))
 model.add(Activation('relu'))
 model.add(Conv2D(512, (3, 3), padding='same', kernel_constraint=const))
-model.add(BatchNormalization(gamma_constraint=bnconst))
+model.add(BNLipschitz(max_k=lcc_lambda))
 model.add(Activation('relu'))
 model.add(MaxPooling2D(pool_size=(2, 2)))
 
@@ -115,7 +90,7 @@ def lr_schedule(epoch):
     return lr
 
 # initiate optimizer
-opt = keras.optimizers.adam(lr=lr_schedule(0), decay=1e-6)
+opt = keras.optimizers.adam(lr=lr_schedule(0), decay=1e-6, amsgrad=True)
 lr_scheduler = LearningRateScheduler(lr_schedule)
 
 # Let's train the model using RMSprop
