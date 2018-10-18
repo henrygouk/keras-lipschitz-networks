@@ -20,6 +20,7 @@ data_augmentation = True
 lcc_norm = 2
 lambda_conv = float("inf")
 lambda_dense = float("inf")
+lambda_bn = float("inf")
 drop_conv = 0
 drop_dense = 0
 sd_conv=0
@@ -32,6 +33,7 @@ opts, args = getopt.getopt(argv[1:], "", longopts=[
     "lcc=",
     "lambda-conv=",
     "lambda-dense=",
+    "lambda-bn=",
     "drop-conv=",
     "drop-dense=",
     "sd-conv=",
@@ -52,6 +54,8 @@ for (k, v) in opts:
         lambda_conv = float(v)
     elif k == "--lambda-dense":
         lambda_dense = float(v)
+    elif k == "--lambda-bn":
+        lambda_bn = float(v)
     elif k == "--drop-conv":
         drop_conv = float(v)
     elif k == "--drop-dense":
@@ -87,6 +91,7 @@ model = vgg19(
     lcc_norm=lcc_norm,
     lambda_conv=lambda_conv,
     lambda_dense=lambda_dense,
+    lambda_bn=lambda_bn,
     sd_conv=sd_conv,
     sd_dense=sd_dense
 )
@@ -157,5 +162,5 @@ model.save(model_path)
 
 # Score trained model.
 scores = model.evaluate(x_test, y_test, verbose=1)
-print('Test loss:', scores[0])
-print('Test accuracy:', scores[1])
+print 'loss=%f' % scores[0]
+print 'accuracy=%f' % scores[1]
