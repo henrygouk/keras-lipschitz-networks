@@ -45,7 +45,9 @@ def model(lambda_conv=float("inf"), lambda_dense=float("inf"), lambda_bn=float("
         cmd.append("--lcc=" + str(lcc))
         cmd.append("--lambda-conv=" + str(lambda_conv))
         cmd.append("--lambda-dense=" + str(lambda_dense))
-        cmd.append("--lambda-bn=" + str(lambda_bn))
+
+        if batchnorm:
+            cmd.append("--lambda-bn=" + str(lambda_bn))
 
     if dropout:
         # Dropout
@@ -71,9 +73,11 @@ def model_wrapper(kwargs):
 space = {}
 
 if lcc == 2:
-    space["lambda_conv"] = hp.uniform("lambda_conv", 2, 10)
-    space["lambda_dense"] = hp.uniform("lambda_dense", 2, 10)
-    space["lambda_bn"] = hp.uniform("lambda_bn", 2, 10)
+    space["lambda_conv"] = hp.lognormal("lambda_conv", 1.0, 0.5)
+    space["lambda_dense"] = hp.lognormal("lambda_dense", 1.0, 0.5)
+
+    if batchnorm:
+        space["lambda_bn"] = hp.lognormal("lambda_bn", 1.0, 0.5)
 
 if dropout:
     space["drop_conv"] = hp.uniform("drop_conv", 0.1, 0.5)
