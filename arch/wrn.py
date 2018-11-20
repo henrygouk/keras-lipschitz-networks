@@ -3,21 +3,26 @@ import keras.backend as K
 from keras.layers import Dense, Activation, Flatten, Lambda, Conv2D, AveragePooling2D, Dropout, Input
 from keras.layers.merge import add
 from keras.models import Model
+from keras.regularizers import l2
 from maybe import maybe_dropout
 from lipschitz import lcc_batchnorm, lcc_conv, lcc_dense, SpectralDecay
 
-# This code was adapted from https://github.com/transcranial/wide-resnet/blob/master/wide-resnet.ipynb
-
 def wrn(in_chan, in_dim, num_classes, k, d, drop_rate_conv=0, lcc_norm=2, lambda_conv=float("inf"), lambda_bn=float("inf"), lambda_dense=float("inf"), sd_conv=0, sd_dense=0):
-    conv_reg = SpectralDecay(sd_conv)
-    dense_reg = SpectralDecay(sd_dense)
+    conv_reg = l2(0.00005)
+    dense_reg = l2(0.00005)
+    
+    if sd_conv != 0:
+        conv_reg = SpectralDecay(sd_conv)
+    
+    if sd_dense != 0:
+        dense_reg = SpectralDecay(sd_dense)
 
     blocks_per_group = (d - 4) / 6
     widening_factor = k
 
     inputs = Input(shape=(in_dim, in_dim, in_chan))
 
-    x = Conv2D(16, (3, 3), kernel_regularizer=conv_reg, **lcc_conv(lcc_norm, lambda_conv, in_shape=(in_chan, in_dim, in_dim)))(inputs)
+    x = Conv2D(16, (3, 3), use_bias=False, kernel_regularizer=conv_reg, **lcc_conv(lcc_norm, lambda_conv, in_shape=(in_chan, in_dim, in_dim)))(inputs)
 
     for i in range(0, blocks_per_group):
         nb_filters = 16 * widening_factor
@@ -77,14 +82,14 @@ def residual_block(x, nb_filters=16, subsample_factor=1, drop_prob=0.0, lcc_norm
 
     y = lcc_batchnorm(lambda_bn)(x)
     y = Activation('relu')(y)
-    y = Conv2D(nb_filters, (3, 3), kernel_regularizer=conv_reg, **lcc_conv(lcc_norm, lambda_conv, in_shape=(prev_nb_channels, prev_shape[1], prev_shape[2]), stride=subsample))(y)
+    y = Conv2D(nb_filters, (3, 3), use_bias=False, kernel_regularizer=conv_reg, **lcc_conv(lcc_norm, lambda_conv, in_shape=(prev_nb_channels, prev_shape[1], prev_shape[2]), stride=subsample))(y)
     y = lcc_batchnorm(lambda_bn)(y)
     y = Activation('relu')(y)
 
     if drop_prob != 0.0:
         y = Dropout(drop_prob)(y)
     
-    y = Conv2D(nb_filters, (3, 3), kernel_regularizer=conv_reg, **lcc_conv(lcc_norm, lambda_conv, in_shape=(nb_filters, prev_shape[1], prev_shape[2])))(y)
+    y = Conv2D(nb_filters, (3, 3), use_bias=False, kernel_regularizer=conv_reg, **lcc_conv(lcc_norm, lambda_conv, in_shape=(nb_filters, prev_shape[1], prev_shape[2])))(y)
     
     out = add([y, shortcut])
 
