@@ -5,7 +5,7 @@ from keras.datasets import cifar10, cifar100
 from keras.optimizers import adam, sgd
 from keras.preprocessing.image import ImageDataGenerator
 from keras.utils import to_categorical
-from arch.vgg19 import vgg19
+from arch.vgg import vgg19
 from arch.wrn import wrn
 import getopt
 import os
