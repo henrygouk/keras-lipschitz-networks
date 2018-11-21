@@ -26,7 +26,7 @@ def wrn(in_chan, in_dim, num_classes, k, d, drop_rate_conv=0, lcc_norm=2, lambda
 
     for i in range(0, blocks_per_group):
         nb_filters = 16 * widening_factor
-        x = residual_block(x, nb_filters=nb_filters, subsample_factor=1, drop_prob=drop_rate_conv, lambda_bn=lambda_bn, conv_reg=conv_reg)
+        x = residual_block(x, nb_filters=nb_filters, subsample_factor=1, drop_prob=drop_rate_conv, lcc_norm=lcc_norm, lambda_conv=lambda_conv, lambda_bn=lambda_bn, conv_reg=conv_reg)
 
     for i in range(0, blocks_per_group):
         nb_filters = 32 * widening_factor
@@ -34,7 +34,7 @@ def wrn(in_chan, in_dim, num_classes, k, d, drop_rate_conv=0, lcc_norm=2, lambda
             subsample_factor = 2
         else:
             subsample_factor = 1
-        x = residual_block(x, nb_filters=nb_filters, subsample_factor=subsample_factor, conv_reg=conv_reg)
+        x = residual_block(x, nb_filters=nb_filters, subsample_factor=subsample_factor, drop_prob=drop_rate_conv, lcc_norm=lcc_norm, lambda_conv=lambda_conv, lambda_bn=lambda_bn, conv_reg=conv_reg)
 
     for i in range(0, blocks_per_group):
         nb_filters = 64 * widening_factor
@@ -42,7 +42,7 @@ def wrn(in_chan, in_dim, num_classes, k, d, drop_rate_conv=0, lcc_norm=2, lambda
             subsample_factor = 2
         else:
             subsample_factor = 1
-        x = residual_block(x, nb_filters=nb_filters, subsample_factor=subsample_factor, conv_reg=conv_reg)
+        x = residual_block(x, nb_filters=nb_filters, subsample_factor=subsample_factor, drop_prob=drop_rate_conv, lcc_norm=lcc_norm, lambda_conv=lambda_conv, lambda_bn=lambda_bn, conv_reg=conv_reg)
 
     x = lcc_batchnorm(lambda_bn)(x)
     x = Activation('relu')(x)
