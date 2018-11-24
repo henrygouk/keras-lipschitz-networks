@@ -20,7 +20,6 @@ os.environ['TF_CPP_MIN_LOG_LEVEL'] = '3'
 batch_size = 100
 epochs = 20
 num_classes = 10
-(x_train, y_train), (x_test, y_test) = ((None, None), (None, None))
 lcc_norm = 2
 lambda_conv = float("inf")
 lambda_dense = float("inf")

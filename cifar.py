@@ -17,7 +17,6 @@ batch_size = 100
 num_classes = 0
 epochs = 200
 data_augmentation = True
-(x_train, y_train), (x_test, y_test) = ((None, None), (None, None))
 lcc_norm = 2
 lambda_conv = float("inf")
 lambda_dense = float("inf")
@@ -105,10 +104,6 @@ y_test = to_categorical(y_test, num_classes)
 
 in_chan = x_train.shape[3]
 in_dim = x_train.shape[1]
-
-model = None
-lr_scheduler = None
-opt = None
 
 def lr_schedule_vgg(epoch):
     if epoch >= 120:
