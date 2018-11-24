@@ -110,10 +110,7 @@ in_chan = x_train.shape[3]
 in_dim = x_train.shape[1]
 
 def lr_schedule(epoch):
-    if epoch >= 15:
-        return 0.00001
-    else:
-        return 0.0001
+    return 0.0001
 
 lr_scheduler = LearningRateScheduler(lr_schedule)
 opt = adam(amsgrad=True)
@@ -155,7 +152,8 @@ model.fit(x_train, y_train,
           batch_size=batch_size,
           epochs=epochs,
           verbose=1,
-          validation_data=(x_test, y_test))
+          validation_data=(x_test, y_test),
+          callbacks=[lr_scheduler])
 
 score = model.evaluate(x_test, y_test, verbose=0)
 print('Test loss:', score[0])
