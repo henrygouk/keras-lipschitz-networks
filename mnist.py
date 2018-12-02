@@ -18,7 +18,7 @@ os.environ['TF_CPP_MIN_LOG_LEVEL'] = '3'
 
 
 batch_size = 100
-epochs = 20
+epochs = 30
 num_classes = 10
 lcc_norm = 2
 lambda_conv = float("inf")
@@ -33,6 +33,7 @@ model_path = "/dev/null"
 valid = False
 img_rows, img_cols = 28, 28
 loaded = False
+log_path = "/dev/null"
 
 opts, args = getopt.getopt(argv[1:], "", longopts=[
     "dataset=",
@@ -46,7 +47,8 @@ opts, args = getopt.getopt(argv[1:], "", longopts=[
     "sd-conv=",
     "sd-dense=",
     "batchnorm",
-    "model-path="
+    "model-path=",
+    "log-path="
 ])
 
 for (k, v) in opts:
@@ -80,6 +82,8 @@ for (k, v) in opts:
         batchnorm = True
     elif k == "--model-path":
         model_path = v
+    elif k == "--log-path":
+        log_path = v
 
 if not loaded:
     (x_train, y_train), (x_test, y_test) = mnist.load_data()
@@ -110,7 +114,10 @@ in_chan = x_train.shape[3]
 in_dim = x_train.shape[1]
 
 def lr_schedule(epoch):
-    return 0.0001
+    if epoch >= 20:
+        return 0.00001
+    else:
+        return 0.0001
 
 lr_scheduler = LearningRateScheduler(lr_schedule)
 opt = adam(amsgrad=True)
@@ -156,5 +163,6 @@ model.fit(x_train, y_train,
           callbacks=[lr_scheduler])
 
 score = model.evaluate(x_test, y_test, verbose=0)
-print('Test loss:', score[0])
-print('Test accuracy:', score[1])
+
+with open(log_path, "a") as f:
+    f.write("loss=" + str(score[0]) + ",accuracy=" + str(score[1]) + "\n")

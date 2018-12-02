@@ -31,6 +31,7 @@ valid = False
 width=10
 depth=16
 arch="wrn"
+log_path = "/dev/null"
 
 opts, args = getopt.getopt(argv[1:], "", longopts=[
     "dataset=",
@@ -45,6 +46,7 @@ opts, args = getopt.getopt(argv[1:], "", longopts=[
     "sd-dense=",
     "batchnorm",
     "model-path=",
+    "log-path=",
     "arch=",
     "width=",
     "depth="
@@ -88,6 +90,8 @@ for (k, v) in opts:
         depth = int(v)
     elif k == "--arch":
         arch = v
+    elif k == "--log-path":
+        log_path = v
 
 if valid:
     x_test = x_train[40000:]
@@ -194,5 +198,9 @@ model.fit_generator(datagen.flow(x_train, y_train, batch_size=batch_size),
 model.save(model_path)
 
 scores = model.evaluate(x_test, y_test, verbose=1)
+
 print 'loss=%f' % scores[0]
 print 'accuracy=%f' % scores[1]
+
+with open(log_path, "a") as f:
+    f.write("loss=" + str(scores[0]) + ",accuracy=" + str(scores[1]) + "\n")
