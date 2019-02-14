@@ -178,11 +178,7 @@ x_test /= 128
 x_train -= 1
 x_test -= 1
 
-datagen = ImageDataGenerator(
-    width_shift_range=0.125,
-    height_shift_range=0.125,
-    fill_mode='nearest',
-    horizontal_flip=True)
+datagen = ImageDataGenerator()
 
 datagen.fit(x_train)
 
