@@ -97,6 +97,10 @@ if dropout:
     space["drop_conv"] = hp.uniform("drop_conv", 0.1, 0.5)
     space["drop_dense"] = hp.uniform("drop_dense", 0.1, 0.5)
 
+if spectral_decay:
+    space["sd_conv"] = hp.choice("sd_conv", [0.1, 0.01, 0.001])
+    space["sd_dense"] = hp.choice("sd_dense", [0.1, 0.01, 0.001])
+
 print "Beginning..."
 
 best = fmin(fn=model_wrapper, space=space, algo=tpe.suggest, max_evals=iterations)
