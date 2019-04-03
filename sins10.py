@@ -17,7 +17,7 @@ os.environ['TF_CPP_MIN_LOG_LEVEL'] = '3'
 
 batch_size = 100
 num_classes = 10
-epochs = 20
+epochs = 60
 data_augmentation = True
 lcc_norm = 2
 lambda_conv = float("inf")
@@ -34,6 +34,7 @@ width=4
 depth=16
 arch="wrn"
 log_path = "/dev/null"
+fold = 0
 
 opts, args = getopt.getopt(argv[1:], "", longopts=[
     "dataset=",
@@ -51,7 +52,8 @@ opts, args = getopt.getopt(argv[1:], "", longopts=[
     "arch=",
     "width=",
     "depth=",
-    "log-path="
+    "log-path=",
+    "fold="
 ])
 
 for (k, v) in opts:
@@ -87,46 +89,51 @@ for (k, v) in opts:
         arch = v
     elif k == "--log-path":
         log_path = v
+    elif k == "--fold":
+        fold = int(v)
 
-train_data = io.loadmat(dataset + "/train_32x32.mat")
-extra_data = io.loadmat(dataset + "/extra_32x32.mat")
-test_data = io.loadmat(dataset + "/test_32x32.mat")
+X_file = open(dataset + "/X.bin")
+X_file.seek(fold * 10000 * 96 * 96 * 3, os.SEEK_SET)
+y_file = open(dataset + "/y.bin")
+y_file.seek(fold * 10000, os.SEEK_SET)
+X_data = np.moveaxis(np.reshape(np.fromfile(X_file, dtype=np.ubyte, count=10000*96*96*3), (10000, 3, 96, 96)), [0, 1, 2, 3], [0, 3, 1, 2]).astype(np.float32)
+y_data = np.reshape(np.fromfile(y_file, dtype=np.ubyte, count=10000), (10000, 1)).astype(np.float32)
 
-x_train = np.append(np.transpose(train_data["X"], (3, 0, 1, 2)), np.transpose(extra_data["X"], (3, 0, 1, 2)), axis=0)
-y_train = np.append(train_data["y"], extra_data["y"])
-x_test = np.transpose(test_data["X"], (3, 0, 1, 2))
-y_test = test_data["y"]
+x_train = X_data[0:9000]
+y_train = y_data[0:9000]
+x_test = X_data[9000:]
+y_test = y_data[9000:]
 
 if valid:
-    x_test = x_train[0:10000]
-    y_test = y_train[0:10000]
-    x_train = x_train[10000:]
-    y_train = y_train[10000:]
+    x_test = x_train[0:1000]
+    y_test = y_train[0:1000]
+    x_train = x_train[1000:]
+    y_train = y_train[1000:]
 
 print('x_train shape:', x_train.shape)
 print(x_train.shape[0], 'train samples')
 print(x_test.shape[0], 'test samples')
 
-y_train = to_categorical(y_train - 1, num_classes)
-y_test = to_categorical(y_test - 1, num_classes)
+y_train = to_categorical(y_train, num_classes)
+y_test = to_categorical(y_test, num_classes)
 
 in_chan = x_train.shape[3]
 in_dim = x_train.shape[1]
 
 def lr_schedule_vgg(epoch):
-    if epoch >= 18:
+    if epoch >= 50:
         return 0.000001
-    elif epoch >= 15:
+    elif epoch >= 40:
         return 0.00001
     else:
         return 0.0001
 
 def lr_schedule_wrn(epoch):
-    if epoch >= 16:
+    if epoch >= 80:
         return 0.0008
-    elif epoch >= 12:
+    elif epoch >= 60:
         return 0.004
-    elif epoch >= 6:
+    elif epoch >= 30:
         return 0.02
     else:
         return 0.1
@@ -149,6 +156,7 @@ if arch == "vgg":
 
     lr_scheduler = LearningRateScheduler(lr_schedule_vgg)
     opt = adam(amsgrad=True)
+    epochs = 60
 elif arch == "wrn":
     model = wrn(
         in_chan,
@@ -166,6 +174,7 @@ elif arch == "wrn":
     )
 
     batch_size = 50
+    epochs = 100
     lr_scheduler = LearningRateScheduler(lr_schedule_wrn)
     opt = sgd(momentum=0.9, nesterov=True)
 else:
@@ -182,7 +191,11 @@ x_test /= 128
 x_train -= 1
 x_test -= 1
 
-datagen = ImageDataGenerator()
+datagen = ImageDataGenerator(
+    width_shift_range=0.125,
+    height_shift_range=0.125,
+    fill_mode='nearest',
+    horizontal_flip=True)
 
 datagen.fit(x_train)
 
