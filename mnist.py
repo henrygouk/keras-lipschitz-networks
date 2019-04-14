@@ -34,6 +34,7 @@ valid = False
 img_rows, img_cols = 28, 28
 loaded = False
 log_path = "/dev/null"
+arch = "conv"
 
 opts, args = getopt.getopt(argv[1:], "", longopts=[
     "dataset=",
@@ -48,7 +49,8 @@ opts, args = getopt.getopt(argv[1:], "", longopts=[
     "sd-dense=",
     "batchnorm",
     "model-path=",
-    "log-path="
+    "log-path=",
+    "arch="
 ])
 
 for (k, v) in opts:
@@ -84,6 +86,8 @@ for (k, v) in opts:
         model_path = v
     elif k == "--log-path":
         log_path = v
+    elif k == "--arch":
+        arch = v
 
 if not loaded:
     (x_train, y_train), (x_test, y_test) = mnist.load_data()
@@ -126,23 +130,34 @@ conv_reg = SpectralDecay(sd_conv)
 dense_reg = SpectralDecay(sd_dense)
 
 model = Sequential()
-model.add(Conv2D(64, (5, 5), kernel_regularizer=conv_reg, **lcc_conv(lcc_norm, lambda_conv, in_shape=(1, 28, 28))))
-maybe_batchnorm(model, lambda_bn, batchnorm)
-model.add(Activation("relu"))
-maybe_dropout(model, drop_conv)
-model.add(MaxPooling2D(pool_size=(2, 2)))
-model.add(Conv2D(128, (5, 5), kernel_regularizer=conv_reg, **lcc_conv(lcc_norm, lambda_conv, in_shape=(64, 14, 14))))
-maybe_batchnorm(model, lambda_bn, batchnorm)
-model.add(Activation("relu"))
-maybe_dropout(model, drop_conv)
-model.add(MaxPooling2D(pool_size=(2, 2)))
-model.add(Flatten())
-model.add(Dense(128, kernel_regularizer=dense_reg, **lcc_dense(lcc_norm, lambda_dense)))
-maybe_batchnorm(model, lambda_bn, batchnorm)
-model.add(Activation("relu"))
-maybe_dropout(model, drop_dense)
-model.add(Dense(num_classes, kernel_regularizer=dense_reg, **lcc_dense(lcc_norm, lambda_dense)))
-model.add(Activation("softmax"))
+if arch == "conv":
+    model.add(Conv2D(64, (5, 5), kernel_regularizer=conv_reg, **lcc_conv(lcc_norm, lambda_conv, in_shape=(1, 28, 28))))
+    maybe_batchnorm(model, lambda_bn, batchnorm)
+    model.add(Activation("relu"))
+    maybe_dropout(model, drop_conv)
+    model.add(MaxPooling2D(pool_size=(2, 2)))
+    model.add(Conv2D(128, (5, 5), kernel_regularizer=conv_reg, **lcc_conv(lcc_norm, lambda_conv, in_shape=(64, 14, 14))))
+    maybe_batchnorm(model, lambda_bn, batchnorm)
+    model.add(Activation("relu"))
+    maybe_dropout(model, drop_conv)
+    model.add(MaxPooling2D(pool_size=(2, 2)))
+    model.add(Flatten())
+    model.add(Dense(128, kernel_regularizer=dense_reg, **lcc_dense(lcc_norm, lambda_dense)))
+    maybe_batchnorm(model, lambda_bn, batchnorm)
+    model.add(Activation("relu"))
+    maybe_dropout(model, drop_dense)
+    model.add(Dense(num_classes, kernel_regularizer=dense_reg, **lcc_dense(lcc_norm, lambda_dense)))
+    model.add(Activation("softmax"))
+elif arch == "mlp":
+    model.add(Flatten())
+    model.add(Dense(1024, kernel_regularizer=dense_reg, **lcc_dense(lcc_norm, lambda_dense)))
+    maybe_batchnorm(model, lambda_bn, batchnorm)
+    model.add(Activation("relu"))
+    model.add(Dense(1024, kernel_regularizer=dense_reg, **lcc_dense(lcc_norm, lambda_dense)))
+    maybe_batchnorm(model, lambda_bn, batchnorm)
+    model.add(Activation("relu"))
+    model.add(Dense(num_classes, kernel_regularizer=dense_reg, **lcc_dense(lcc_norm, lambda_dense)))
+    model.add(Activation("softmax"))
 
 model.compile(loss='categorical_crossentropy',
               optimizer=opt,
