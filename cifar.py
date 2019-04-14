@@ -32,6 +32,7 @@ width=10
 depth=16
 arch="wrn"
 log_path = "/dev/null"
+subsample = 1
 
 opts, args = getopt.getopt(argv[1:], "", longopts=[
     "dataset=",
@@ -49,7 +50,8 @@ opts, args = getopt.getopt(argv[1:], "", longopts=[
     "log-path=",
     "arch=",
     "width=",
-    "depth="
+    "depth=",
+    "subsample="
 ])
 
 for (k, v) in opts:
@@ -92,12 +94,19 @@ for (k, v) in opts:
         arch = v
     elif k == "--log-path":
         log_path = v
+    elif k == "--subsample":
+        subsample = float(v)
 
 if valid:
     x_test = x_train[40000:]
     y_test = y_train[40000:]
     x_train = x_train[0:40000]
     y_train = y_train[0:40000]
+
+if subsample < 1:
+    train_size = int(x_train.shape[0] * subsample)
+    x_train = x_train[0:train_size]
+    y_train = y_train[0:train_size]
 
 print('x_train shape:', x_train.shape)
 print(x_train.shape[0], 'train samples')
